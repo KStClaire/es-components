@@ -30,20 +30,24 @@ class RadioGroup extends React.Component {
     /** Display the radio buttons inline */
     inline: PropTypes.bool,
     /** Function to execute when the value of the radio group changes */
-    onCheckedValueChanged: PropTypes.func
+    onCheckedValueChanged: PropTypes.func,
+    /** Function to execute when the selected radio button loses focus */
+    onCheckedValueFocusLost: PropTypes.func
   };
 
   static defaultProps = {
     hasError: false,
     disableAllOptions: false,
     inline: true,
-    onCheckedValueChanged: noop
+    onCheckedValueChanged: noop,
+    onCheckedValueFocusLost: noop
   };
 
   constructor(props) {
     super(props);
 
     this.handleOnChange = this.handleOnChange.bind(this);
+    this.handleFocusLost = this.handleFocusLost.bind(this);
 
     const { checkedValue } = this.props;
 
@@ -56,14 +60,18 @@ class RadioGroup extends React.Component {
     this.setState(() => ({ checkedValue }));
   }
 
+  handleEvent(event, handlerName) {
+    const { value } = event.currentTarget;
+    const handler = this.props[handlerName];
+    this.setState({ checkedValue: value }, () => handler(value));
+  }
+
   handleOnChange(event) {
-    const { value: checkedValue } = event.currentTarget;
-    this.setState(
-      {
-        checkedValue
-      },
-      () => this.props.onCheckedValueChanged(checkedValue)
-    );
+    this.handleEvent(event, 'onCheckedValueChanged');
+  }
+
+  handleFocusLost(event) {
+    this.handleEvent(event, 'onCheckedValueFocusLost');
   }
 
   render() {
@@ -91,6 +99,7 @@ class RadioGroup extends React.Component {
             inline,
             id: radioId,
             onChange: this.handleOnChange,
+            onBlur: this.handleFocusLost,
             optionText: config.optionText,
             value: config.optionValue
           };

@@ -42,7 +42,7 @@ const RadioInput = styled.input`
   position: absolute;
 
   &:focus ~ .radio-fill {
-    box-shadow: 0 0 3px 3px #83bffc
+    box-shadow: 0 0 3px 3px #83bffc;
   }
 `;
 
@@ -60,7 +60,9 @@ const RadioDisplay = styled.span`
   position: absolute;
   width: 25px;
 
-  &:before { ${props => radioFill(props.fill)} }
+  &:before {
+    ${props => radioFill(props.fill)};
+  }
 `;
 
 function RadioButton({
@@ -71,10 +73,16 @@ function RadioButton({
   disabled = false,
   inline = true,
   onChange = noop,
+  onBlur = noop,
   value,
   isInErrorState = false,
-  ...radioProps }) {
-  const { hover, fill } = getRadioFillVariables(checked, disabled, isInErrorState);
+  ...radioProps
+}) {
+  const { hover, fill } = getRadioFillVariables(
+    checked,
+    disabled,
+    isInErrorState
+  );
   const radioDisplayFill = checked ? fill : colors.white;
 
   const labelProps = {
@@ -93,12 +101,19 @@ function RadioButton({
         name={name}
         id={id}
         onChange={onChange}
+        onBlur={onBlur}
         value={value}
         disabled={disabled}
         {...radioProps}
       />
-      <RadioDisplay className="radio-fill" borderColor={fill} fill={radioDisplayFill} />
-      <RadioText>{optionText}</RadioText>
+      <RadioDisplay
+        className="radio-fill"
+        borderColor={fill}
+        fill={radioDisplayFill}
+      />
+      <RadioText>
+        {optionText}
+      </RadioText>
     </RadioLabel>
   );
 }
@@ -111,6 +126,7 @@ RadioButton.propTypes = {
   disabled: PropTypes.bool,
   inline: PropTypes.bool,
   onChange: PropTypes.func,
+  onBlur: PropTypes.func,
   value: PropTypes.any,
   isInErrorState: PropTypes.bool
 };
