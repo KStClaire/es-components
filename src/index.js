@@ -12,6 +12,7 @@ export Button from './components/controls/buttons/Button';
 export RadioGroup from './components/controls/radio-buttons/RadioGroup';
 export Dropdown from './components/controls/dropdown/Dropdown';
 export Checkbox from './components/controls/checkbox/Checkbox';
+export Slider from './components/controls/slider/RangeSlider';
 
 export SideNav from './components/navigation/sidenav/SideNav';
 
