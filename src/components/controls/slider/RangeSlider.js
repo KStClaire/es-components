@@ -1,25 +1,20 @@
-/* eslint-disable */
-
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import Label from '../Label';
 import { LabelText } from '../BaseControls';
 import Slider from './Slider';
-import { noop, isNil, divide, isArray } from 'lodash';
+import { noop, isNil, divide, isArray, size } from 'lodash';
 
 const ValueLabel = LabelText.extend`
-  text-align: ${props =>
-    props.inline ? 'center' : props.lowerFill ? 'left' : 'right'};
-  margin: auto;
+  text-align: ${props => (props.inline ? 'center' : props.alignment)};
+  margin: ${props => (props.inline ? 'auto' : '')};
 `;
 
 const ValueLabelsContainer = styled.div`
   display: flex;
   justify-content: space-between;
   width: ${props => (props.inline ? '90' : props.width)}px;
-  margin: 0 5px;
-  text-align: center;
 `;
 
 const RangedSlider = styled.div`
@@ -35,14 +30,9 @@ const ExtendedSlider = styled(Slider)`
     position: relative;
     z-index: 1;
   }
-
-  // &::-webkit-slider-runnable-track {
-  //   padding-right: ${props => (props.lowerFill ? props.maxValue : '')}px;
-  //   padding-left: ${props => (props.lowerFill ? '' : props.minValue)}px;
-  // }
 `;
 
-const limitedArray = function(props, propName, componentName) {
+const limitedArray = (props, propName, componentName) => {
   if (!isArray(props.initialValues) || props.initialValues.length !== 2) {
     return new Error(
       `${propName} in ${componentName} cannot contain more than two numbers`
@@ -57,12 +47,12 @@ class RangeSlider extends React.Component {
     name: PropTypes.string,
     inline: PropTypes.bool,
     isVertical: PropTypes.bool,
-    multiple: PropTypes.bool,
     displayValues: PropTypes.bool,
     minValue: PropTypes.number,
     maxValue: PropTypes.number,
     width: PropTypes.number,
     stepValue: PropTypes.number,
+    rangeLimit: PropTypes.number,
     initialValues: PropTypes.oneOfType([PropTypes.number, limitedArray]),
     lowerRangeInitialValue: PropTypes.number,
     handleOnValueChanged: PropTypes.func
@@ -75,28 +65,25 @@ class RangeSlider extends React.Component {
     minValue: 0,
     maxValue: 100,
     stepValue: 1,
-    multiple: false
+    rangeLimit: 5,
+    displayValues: true,
+    inline: false
   };
 
   constructor(props) {
     super(props);
 
     this.state = {
-      currentValues:
-        isArray(props.initialValues) || props.multiple
-          ? {
-              [`${props.name}-lower`]: isNil(props.initialValues)
-                ? props.minValue
-                : props.initialValues[0],
-              [`${props.name}-upper`]: isNil(props.initialValues)
-                ? props.maxValue
-                : props.initialValues[1]
-            }
-          : {
-              [`${props.name}-upper`]: isNil(props.initialValues)
-                ? divide(props.maxValue, 2)
-                : props.initialValues
-            }
+      currentValues: isArray(props.initialValues)
+        ? {
+          [`${props.name}-lower`]: props.initialValues[0],
+          [`${props.name}-upper`]: props.initialValues[1]
+        }
+        : {
+          [`${props.name}-upper`]: isNil(props.initialValues)
+              ? divide(props.maxValue, 2)
+              : props.initialValues
+        }
     };
 
     this.handleOnChange = this.handleOnChange.bind(this);
@@ -107,8 +94,28 @@ class RangeSlider extends React.Component {
   handleOnChange(event) {
     const { value, name } = event.target;
     const { currentValues } = this.state;
+    const { rangeLimit } = this.props;
 
-    currentValues[name] = value;
+    let finalValue;
+    if (size(currentValues) < 2) {
+      finalValue = value;
+    } else if (name.includes('upper')) {
+      const lowerValue = parseInt(
+        currentValues[`${this.props.name}-lower`],
+        10
+      );
+      finalValue =
+        value > lowerValue + rangeLimit ? value : lowerValue + rangeLimit;
+    } else if (name.includes('lower')) {
+      const upperValue = parseInt(
+        currentValues[`${this.props.name}-upper`],
+        10
+      );
+      finalValue =
+        value < upperValue - rangeLimit ? value : upperValue - rangeLimit;
+    }
+
+    currentValues[name] = finalValue;
 
     this.setState(
       {
@@ -134,28 +141,28 @@ class RangeSlider extends React.Component {
     );
   }
 
-  renderValueLabels(
-    inline,
-    width,
-    upperValue,
-    lowerValue,
-    isMultiRange,
-    displayInlineLowerValue = false
-  ) {
+  renderValueLabels(lowerValue, upperValue) {
+    const { inline, width } = this.props;
+    const hasLowerValue = lowerValue >= 0;
+    const hasUpperValue = upperValue >= 0;
+    const upperAlignment = hasLowerValue ? 'right' : 'left';
+
     return (
       <ValueLabelsContainer width={width} inline={inline}>
-        {displayInlineLowerValue
-          ? ''
-          : isMultiRange
-            ? <ValueLabel inline={inline} lowerFill>
-                {lowerValue}
-              </ValueLabel>
-            : ''}
-        {displayInlineLowerValue
-          ? ''
-          : <ValueLabel inline={inline}>
-              {upperValue}
-            </ValueLabel>}
+        {hasLowerValue ? (
+          <ValueLabel inline={inline} alignment={'left'}>
+            {lowerValue}
+          </ValueLabel>
+        ) : (
+          ''
+        )}
+        {hasUpperValue ? (
+          <ValueLabel inline={inline} alignment={upperAlignment}>
+            {upperValue}
+          </ValueLabel>
+        ) : (
+          ''
+        )}
       </ValueLabelsContainer>
     );
   }
@@ -167,29 +174,19 @@ class RangeSlider extends React.Component {
       width,
       minValue,
       maxValue,
-      multiple,
       inline,
-      displayValues = true
+      displayValues
     } = this.props;
     const upperValue = this.state.currentValues[`${name}-upper`];
     const lowerValue = this.state.currentValues[`${name}-lower`];
-
-    const isMultiRange = multiple || lowerValue;
+    const displayInlineLabels = displayValues && inline;
+    const hasLowerValue = lowerValue >= 0;
 
     return (
       <Label inline={inline}>
-        <LabelText inline={inline}>
-          {labelText}
-        </LabelText>
-        {displayValues
-          ? this.renderValueLabels(
-              inline,
-              width,
-              upperValue,
-              lowerValue,
-              isMultiRange,
-              true
-            )
+        <LabelText inline={inline}>{labelText}</LabelText>
+        {displayInlineLabels && hasLowerValue
+          ? this.renderValueLabels(lowerValue)
           : ''}
         <RangedSlider name={name} width={width}>
           <ExtendedSlider
@@ -200,17 +197,11 @@ class RangeSlider extends React.Component {
             value={upperValue}
             onChange={this.handleOnChange}
           />
-          {isMultiRange ? this.renderLowerFill(lowerValue) : ''}
+          {hasLowerValue ? this.renderLowerFill(lowerValue) : ''}
         </RangedSlider>
-        {displayValues
-          ? this.renderValueLabels(
-              inline,
-              width,
-              upperValue,
-              lowerValue,
-              isMultiRange
-            )
-          : ''}
+        {displayInlineLabels
+          ? this.renderValueLabels(undefined, upperValue)
+          : this.renderValueLabels(lowerValue, upperValue)}
       </Label>
     );
   }
