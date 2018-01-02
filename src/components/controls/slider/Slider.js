@@ -14,15 +14,15 @@ function createFill(width, fillLower) {
 }
 
 const SliderInput = styled.input`
+  position: absolute;
   appearance: none;
   background: none;
   cursor: pointer;
+  width: ${props => props.width}px;
   min-height: 35px;
   overflow: hidden;
   margin: 0;
-  width: 100%;
-  height: ${props => (props.isVertical ? props.width : '35')}px;
-  transform: ${props => (props.isVertical ? 'rotate(-90deg)' : '')};
+  pointer-events: none;
 
   &:focus {
     outline: none;
@@ -32,67 +32,70 @@ const SliderInput = styled.input`
     background: ${colors.grayDarker};
     height: 9px;
   }
-
   &::-webkit-slider-thumb {
+    position: relative;
+    z-index: 1;
     height: 25px;
     width: 25px;
     appearance: none;
     background: ${colors.accent};
     border-radius: 100px;
-    box-shadow: ${props => createFill(props.width, props.lowerFill)};
+    box-shadow: ${props => createFill(props.width, props.isLowerFill)};
     margin-top: -8px;
 
     &:hover {
       background: ${colors.accentLighter};
     }
-
     &:active {
       background: ${colors.magenta};
     }
+  }
+  &:focus::-webkit-slider-thumb {
+    outline-color: #4D90FE;
+    outline-style: auto;
+    outline-width: 5px;
+    // border-radius: 100px;
+    // border: 1px solid #4D90FE;
+    // box-shadow: ${props =>
+      createFill(props.width, props.isLowerFill)}, 0px 0px 5px #4D90FE;
   }
 `;
 
 function Slider({
   name,
+  value,
   width,
   stepValue,
   minValue,
   maxValue,
-  initialValue,
-  isVertical,
-  displayValue,
   onChange,
-  value,
   ...otherProps
 }) {
   return (
     <SliderInput
       type="range"
       name={name}
+      value={value}
       width={width}
       min={minValue}
       max={maxValue}
       step={stepValue}
-      isVertical={isVertical}
-      value={value}
       onChange={onChange}
       {...otherProps}
     />
   );
 }
 
-export default Slider;
-
 Slider.propTypes = {
   name: PropTypes.string,
-  isLowerFill: PropTypes.string,
-  isVertical: PropTypes.bool,
-  displayValue: PropTypes.bool,
-  minValue: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  maxValue: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  value: PropTypes.any,
   width: PropTypes.number,
+  minValue: PropTypes.number,
+  maxValue: PropTypes.number,
   stepValue: PropTypes.number,
-  initialValue: PropTypes.number,
-  onChange: PropTypes.func,
-  value: PropTypes.any
+  isLowerFill: PropTypes.bool,
+  isMultiRange: PropTypes.bool,
+  onChange: PropTypes.func
 };
+
+export default Slider;
